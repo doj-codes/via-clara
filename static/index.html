@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VíaClara — Diagnóstico Automático de Superficie Vial</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Barra Superior Minimalista -->
+  <header class="bg-white border-b border-slate-200/80 sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm">
+          VC
+        </div>
+        <div>
+          <span class="font-bold text-slate-900 tracking-tight text-base">VíaClara</span>
+          <span class="hidden sm:inline-block ml-2 text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium">
+            Motor Python + OpenCV Activo
+          </span>
+        </div>
+      </div>
+
+      <button id="toggleInspectorBtn" class="text-xs font-medium px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition">
+        Modo Inspector (Ver cálculo)
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- Columna Izquierda: Imagen y Controles -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h1 class="text-base font-semibold text-slate-900">Inspección de Superficie</h1>
+            <p class="text-xs text-slate-500">Sube una foto de pavimento (ej. crack-seg) o usa un caso rápido</p>
+          </div>
+          <label class="cursor-pointer inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4"/></svg>
+            <span>Subir foto</span>
+            <input id="fileInput" type="file" accept="image/*" class="hidden" />
+          </label>
+        </div>
+
+        <!-- Visor de Imagen -->
+        <div class="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 aspect-square max-h-[390px] w-full mx-auto flex items-center justify-center">
+          <img id="displayImage" src="" alt="Vista de pavimento" class="w-full h-full object-cover" />
+          
+          <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center">
+            <div class="bg-white px-4 py-2 rounded-xl text-xs font-semibold text-slate-800 shadow">
+              Procesando en Python OpenCV...
+            </div>
+          </div>
+
+          <!-- Switch Original / Procesada -->
+          <div class="absolute bottom-3.5 left-3.5 bg-white/95 backdrop-blur-md p-1 rounded-xl shadow-md border border-slate-200/80 flex gap-1">
+            <button id="btnViewOrig" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+              Foto Original
+            </button>
+            <button id="btnViewProc" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition">
+              Detección Limpia
+            </button>
+          </div>
+
+          <div class="absolute bottom-3.5 right-3.5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-md border border-slate-200/80 flex items-center gap-3 text-[11px] font-medium text-slate-700">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>Fisuras</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>Cavidad</span>
+          </div>
+        </div>
+
+        <!-- Control de Limpieza de Porosidad (Anti-Ruido) -->
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-4">
+          <div class="text-xs">
+            <span class="font-medium text-slate-700">Filtro de porosidad del concreto:</span>
+            <span id="sensVal" class="ml-1 font-mono text-slate-500">65 px</span>
+          </div>
+          <input id="sensitivitySlider" type="range" min="15" max="180" value="65" class="w-40 accent-blue-600 cursor-pointer" />
+        </div>
+
+        <!-- Casos Rápidos -->
+        <div class="mt-4">
+          <p class="text-xs font-medium text-slate-500 mb-2.5">Casos de prueba rápidos:</p>
+          <div class="grid grid-cols-2 gap-2.5">
+            <button onclick="loadPreset('sano')" class="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition">
+              <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Vía en buen estado
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">Asfalto continuo sin fisuras</p>
+            </button>
+            <button onclick="loadPreset('lineal')" class="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition">
+              <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
+                <span class="w-2 h-2 rounded-full bg-amber-500"></span> Fisura lineal leve
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">Grieta longitudinal única</p>
+            </button>
+            <button onclick="loadPreset('red')" class="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition">
+              <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
+                <span class="w-2 h-2 rounded-full bg-orange-500"></span> Desgaste en red
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">Fatiga ramificada en calzada</p>
+            </button>
+            <button onclick="loadPreset('bache')" class="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition">
+              <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
+                <span class="w-2 h-2 rounded-full bg-red-500"></span> Bache profundo
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">Desprendimiento severo</p>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Resultado de Severidad -->
+      <div class="lg:col-span-5 space-y-5">
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Resultado del Diagnóstico</span>
+            <span id="statusBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
+              Evaluando...
+            </span>
+          </div>
+
+          <div class="flex items-baseline gap-3 my-2">
+            <span id="scoreValue" class="text-5xl font-bold tracking-tight text-slate-900">--</span>
+            <span class="text-sm text-slate-400 font-medium">/ 100 Índice de Severidad</span>
+          </div>
+
+          <p id="clusterText" class="text-xs font-medium text-slate-600 mt-1">
+            Categoría estimada: --
+          </p>
+
+          <!-- Barras Descriptivas -->
+          <div class="mt-6 space-y-4 pt-5 border-t border-slate-100">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="font-medium text-slate-700">Densidad de fisuras limpias (X₁)</span>
+                <span id="barCrackText" class="font-semibold text-slate-900">0%</span>
+              </div>
+              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div id="barCrack" class="h-full bg-blue-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="font-medium text-slate-700">Área de cavidad / desprendimiento (X₂)</span>
+                <span id="barCavityText" class="font-semibold text-slate-900">0%</span>
+              </div>
+              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div id="barCavity" class="h-full bg-red-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="font-medium text-slate-700">Rugosidad de la superficie (X₃)</span>
+                <span id="barRoughText" class="font-semibold text-slate-900">0%</span>
+              </div>
+              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div id="barRough" class="h-full bg-amber-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span class="text-slate-500">Prioridad de mantenimiento (Logística):</span>
+            <span id="urgentProb" class="font-bold text-slate-800">--%</span>
+          </div>
+        </div>
+
+        <!-- Panel Modo Inspector (Oculto por defecto) -->
+        <div id="inspectorPanel" class="hidden bg-slate-900 text-slate-100 rounded-2xl p-5 shadow-md space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-blue-400">Desglose Matemático (Python Backend)</span>
+            <span class="text-[11px] font-mono text-slate-400">NumPy + OpenCV</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            El servidor aplica filtro bilateral + umbral adaptativo + descarte morfológico de poros y evalúa la Regresión Lineal Múltiple:
+          </p>
+          <div id="mathFormula" class="bg-slate-800/90 border border-slate-700 rounded-xl p-3 font-mono text-xs text-emerald-300 overflow-x-auto">
+            ŷ = 4.2 + 52.0(X₁) + 31.5(X₂) + 12.3(X₃)
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let currentOrig = "";
+    let currentProc = "";
+    let showingProc = true;
+    let lastUploadedFile = null;
+    let currentPreset = "lineal";
+
+    const displayImage = document.getElementById("displayImage");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    const btnViewOrig = document.getElementById("btnViewOrig");
+    const btnViewProc = document.getElementById("btnViewProc");
+    const sensitivitySlider = document.getElementById("sensitivitySlider");
+    const sensVal = document.getElementById("sensVal");
+
+    function updateViewButtons() {
+      if (showingProc) {
+        displayImage.src = currentProc;
+        btnViewProc.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition";
+        btnViewOrig.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+      } else {
+        displayImage.src = currentOrig;
+        btnViewOrig.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition";
+        btnViewProc.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+      }
+    }
+
+    btnViewOrig.addEventListener("click", () => { showingProc = false; updateViewButtons(); });
+    btnViewProc.addEventListener("click", () => { showingProc = true; updateViewButtons(); });
+
+    document.getElementById("toggleInspectorBtn").addEventListener("click", () => {
+      const panel = document.getElementById("inspectorPanel");
+      panel.classList.toggle("hidden");
+    });
+
+    function renderResponse(data) {
+      currentOrig = data.original_image;
+      currentProc = data.processed_image;
+      updateViewButtons();
+
+      const score = data.severity_score;
+      document.getElementById("scoreValue").textContent = score.toFixed(1);
+      document.getElementById("clusterText").textContent = "Diagnóstico por agrupación: " + data.cluster_label;
+      document.getElementById("urgentProb").textContent = data.urgent_probability + "% prob. intervención";
+
+      const badge = document.getElementById("statusBadge");
+      if (score < 28) {
+        badge.textContent = "Condición Óptima";
+        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200";
+      } else if (score < 60) {
+        badge.textContent = "Deterioro Moderado";
+        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200";
+      } else {
+        badge.textContent = "Intervención Prioritaria";
+        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200";
+      }
+
+      document.getElementById("barCrack").style.width = data.features.crack_density + "%";
+      document.getElementById("barCrackText").textContent = data.features.crack_density + "%";
+
+      document.getElementById("barCavity").style.width = data.features.cavity_area + "%";
+      document.getElementById("barCavityText").textContent = data.features.cavity_area + "%";
+
+      document.getElementById("barRough").style.width = data.features.roughness + "%";
+      document.getElementById("barRoughText").textContent = data.features.roughness + "%";
+
+      const eq = data.equation;
+      document.getElementById("mathFormula").textContent =
+        `ŷ = ${eq.b0} + ${eq.b1}(${eq.x1}) + ${eq.b2}(${eq.x2}) + ${eq.b3}(${eq.x3}) = ${score}`;
+    }
+
+    async function loadPreset(presetId) {
+      lastUploadedFile = null;
+      currentPreset = presetId;
+      loadingOverlay.classList.remove("hidden");
+      try {
+        const sens = sensitivitySlider.value;
+        const res = await fetch(`/api/preset/${presetId}?sensitivity=${sens}`);
+        const data = await res.json();
+        renderResponse(data);
+      } finally {
+        loadingOverlay.classList.add("hidden");
+      }
+    }
+
+    async function uploadFile(file) {
+      loadingOverlay.classList.remove("hidden");
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("sensitivity", sensitivitySlider.value);
+        const res = await fetch("/api/analyze", { method: "POST", body: formData });
+        const data = await res.json();
+        renderResponse(data);
+      } finally {
+        loadingOverlay.classList.add("hidden");
+      }
+    }
+
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      if (e.target.files && e.target.files[0]) {
+        lastUploadedFile = e.target.files[0];
+        uploadFile(lastUploadedFile);
+      }
+    });
+
+    sensitivitySlider.addEventListener("change", () => {
+      sensVal.textContent = sensitivitySlider.value + " px";
+      if (lastUploadedFile) {
+        uploadFile(lastUploadedFile);
+      } else {
+        loadPreset(currentPreset);
+      }
+    });
+
+    sensitivitySlider.addEventListener("input", () => {
+      sensVal.textContent = sensitivitySlider.value + " px";
+    });
+
+    loadPreset("lineal");
+  </script>
+</body>
+</html>
