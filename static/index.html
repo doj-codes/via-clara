@@ -3,316 +3,710 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VíaClara — Diagnóstico Automático de Superficie Vial</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>VíaClara — Diagnóstico, Entrenamiento y Evaluación Vial con IA</title>
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    :root {
+      --bg: #F8FAFC;
+      --card: #FFFFFF;
+      --border: #E2E8F0;
+      --text: #0F172A;
+      --muted: #64748B;
+      --primary: #2563EB;
+      --primary-hover: #1D4ED8;
+      --emerald: #059669;
+      --emerald-bg: #ECFDF5;
+      --amber: #D97706;
+      --amber-bg: #FFFBEB;
+      --red: #DC2626;
+      --red-bg: #FEF2F2;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .nav-bar {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .pill-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--emerald-bg);
+      color: var(--emerald);
+      border: 1px solid #A7F3D0;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      background: #F1F5F9;
+      padding: 4px;
+      border-radius: 10px;
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--card);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 7fr 5fr;
+      gap: 22px;
+      padding: 26px 0 40px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .title-sm { font-size: 16px; font-weight: 700; color: var(--text); }
+    .subtitle-xs { font-size: 12px; color: var(--muted); }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .viewer-box {
+      position: relative;
+      width: 100%;
+      max-height: 380px;
+      aspect-ratio: 1 / 1;
+      background: #0F172A;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .viewer-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .viewer-controls {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(255,255,255,0.95);
+      padding: 4px;
+      border-radius: 10px;
+      display: flex;
+      gap: 4px;
+      border: 1px solid var(--border);
+    }
+    .switch-btn {
+      border: none;
+      padding: 6px 11px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+    }
+    .switch-btn.active {
+      background: #0F172A;
+      color: #fff;
+    }
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .preset-card {
+      text-align: left;
+      padding: 11px 13px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-card:hover {
+      border-color: #93C5FD;
+      background: #EFF6FF;
+    }
+    .score-big {
+      font-size: 46px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .badge-ok { background: var(--emerald-bg); color: var(--emerald); border: 1px solid #A7F3D0; }
+    .badge-warn { background: var(--amber-bg); color: var(--amber); border: 1px solid #FDE68A; }
+    .badge-crit { background: var(--red-bg); color: var(--red); border: 1px solid #FECACA; }
+    .bar-group { margin-top: 14px; }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    .bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #F1F5F9;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+    .hidden { display: none !important; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: center;
+    }
+    th {
+      background: #F8FAFC;
+      font-weight: 700;
+      color: #334155;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 14px 0;
+    }
+    @media (max-width: 700px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .kpi-box {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .kpi-val { font-size: 22px; font-weight: 800; color: var(--text); }
+    .kpi-lbl { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .input-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+    .field input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .formula-box {
+      background: #0F172A;
+      color: #6EE7B7;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+      overflow-x: auto;
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body>
 
-  <!-- Barra Superior Minimalista -->
-  <header class="bg-white border-b border-slate-200/80 sticky top-0 z-20">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm">
-          VC
-        </div>
+  <header class="header">
+    <div class="container nav-bar">
+      <div class="brand">
+        <div class="brand-logo">VC</div>
         <div>
-          <span class="font-bold text-slate-900 tracking-tight text-base">VíaClara</span>
-          <span class="hidden sm:inline-block ml-2 text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium">
-            Motor Python + OpenCV Activo
-          </span>
+          <span>VíaClara</span>
+          <span class="pill-status" style="margin-left:8px;">CSS Nativo + Motor Python Activo</span>
         </div>
       </div>
 
-      <button id="toggleInspectorBtn" class="text-xs font-medium px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition">
-        Modo Inspector (Ver cálculo)
-      </button>
+      <div class="tabs">
+        <button id="tabBtnInspect" class="tab-btn active" onclick="switchTab('inspect')">1. Inspección y Predicción (D3)</button>
+        <button id="tabBtnTrain" class="tab-btn" onclick="switchTab('train')">2. Entrenamiento y Métricas (D2 / C3)</button>
+      </div>
     </div>
   </header>
 
-  <!-- Contenido Principal -->
-  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+  <main class="container">
 
-      <!-- Columna Izquierda: Imagen y Controles -->
-      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 sm:p-6">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <!-- VISTA 1: INSPECCIÓN POR IMAGEN + PREDICCIÓN DIRECTA POR VARIABLES X (D3) -->
+    <section id="viewInspect" class="main-grid">
+      <div class="card">
+        <div class="card-header">
           <div>
-            <h1 class="text-base font-semibold text-slate-900">Inspección de Superficie</h1>
-            <p class="text-xs text-slate-500">Sube una foto de pavimento (ej. crack-seg) o usa un caso rápido</p>
+            <h1 class="title-sm">Inspección de Superficie Vial</h1>
+            <p class="subtitle-xs">Sube una fotografía (crack-seg / RDD2022) o selecciona un escenario tipo</p>
           </div>
-          <label class="cursor-pointer inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4"/></svg>
-            <span>Subir foto</span>
+          <label class="btn-primary">
+            <span>Subir fotografía</span>
             <input id="fileInput" type="file" accept="image/*" class="hidden" />
           </label>
         </div>
 
-        <!-- Visor de Imagen -->
-        <div class="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 aspect-square max-h-[390px] w-full mx-auto flex items-center justify-center">
-          <img id="displayImage" src="" alt="Vista de pavimento" class="w-full h-full object-cover" />
-          
-          <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center">
-            <div class="bg-white px-4 py-2 rounded-xl text-xs font-semibold text-slate-800 shadow">
-              Procesando en Python OpenCV...
-            </div>
-          </div>
-
-          <!-- Switch Original / Procesada -->
-          <div class="absolute bottom-3.5 left-3.5 bg-white/95 backdrop-blur-md p-1 rounded-xl shadow-md border border-slate-200/80 flex gap-1">
-            <button id="btnViewOrig" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
-              Foto Original
-            </button>
-            <button id="btnViewProc" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition">
-              Detección Limpia
-            </button>
-          </div>
-
-          <div class="absolute bottom-3.5 right-3.5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-md border border-slate-200/80 flex items-center gap-3 text-[11px] font-medium text-slate-700">
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>Fisuras</span>
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>Cavidad</span>
+        <div class="viewer-box">
+          <img id="displayImage" src="" alt="Superficie vial" />
+          <div class="viewer-controls">
+            <button id="btnOrig" class="switch-btn" onclick="setImgView(false)">Foto Original</button>
+            <button id="btnProc" class="switch-btn active" onclick="setImgView(true)">Detección sin Ruido</button>
           </div>
         </div>
 
-        <!-- Control de Limpieza de Porosidad (Anti-Ruido) -->
-        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-4">
-          <div class="text-xs">
-            <span class="font-medium text-slate-700">Filtro de porosidad del concreto:</span>
-            <span id="sensVal" class="ml-1 font-mono text-slate-500">65 px</span>
-          </div>
-          <input id="sensitivitySlider" type="range" min="15" max="180" value="65" class="w-40 accent-blue-600 cursor-pointer" />
+        <div style="margin-top:14px; display:flex; align-items:center; justify-content:space-between; font-size:12px;">
+          <span><strong>Filtro morfológico anti-porosidad:</strong> <span id="sensLabel">65 px</span></span>
+          <input id="sensSlider" type="range" min="15" max="180" value="65" style="width:160px;" />
         </div>
 
-        <!-- Casos Rápidos -->
-        <div class="mt-4">
-          <p class="text-xs font-medium text-slate-500 mb-2.5">Casos de prueba rápidos:</p>
-          <div class="grid grid-cols-2 gap-2.5">
-            <button onclick="loadPreset('sano')" class="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition">
-              <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Vía en buen estado
-              </div>
-              <p class="text-[11px] text-slate-500 mt-0.5">Asfalto continuo sin fisuras</p>
-            </button>
-            <button onclick="loadPreset('lineal')" class="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition">
-              <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
-                <span class="w-2 h-2 rounded-full bg-amber-500"></span> Fisura lineal leve
-              </div>
-              <p class="text-[11px] text-slate-500 mt-0.5">Grieta longitudinal única</p>
-            </button>
-            <button onclick="loadPreset('red')" class="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition">
-              <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
-                <span class="w-2 h-2 rounded-full bg-orange-500"></span> Desgaste en red
-              </div>
-              <p class="text-[11px] text-slate-500 mt-0.5">Fatiga ramificada en calzada</p>
-            </button>
-            <button onclick="loadPreset('bache')" class="text-left p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition">
-              <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
-                <span class="w-2 h-2 rounded-full bg-red-500"></span> Bache profundo
-              </div>
-              <p class="text-[11px] text-slate-500 mt-0.5">Desprendimiento severo</p>
-            </button>
-          </div>
+        <div class="presets-grid">
+          <button class="preset-card" onclick="loadPreset('sano')">
+            <div style="font-size:12px; font-weight:700; color:#059669;">● Escenario 1: Vía Óptima</div>
+            <div class="subtitle-xs">Carpeta continua sin fisuras</div>
+          </button>
+          <button class="preset-card" onclick="loadPreset('lineal')">
+            <div style="font-size:12px; font-weight:700; color:#D97706;">● Escenario 2: Fisura Lineal (D00)</div>
+            <div class="subtitle-xs">Agrietamiento longitudinal moderado</div>
+          </button>
+          <button class="preset-card" onclick="loadPreset('red')">
+            <div style="font-size:12px; font-weight:700; color:#EA580C;">● Escenario 3: Piel de Cocodrilo (D20)</div>
+            <div class="subtitle-xs">Fatiga reticular ramificada</div>
+          </button>
+          <button class="preset-card" onclick="loadPreset('bache')">
+            <div style="font-size:12px; font-weight:700; color:#DC2626;">● Escenario 4: Bache Crítico (D40)</div>
+            <div class="subtitle-xs">Desprendimiento estructural severo</div>
+          </button>
         </div>
       </div>
 
-      <!-- Columna Derecha: Resultado de Severidad -->
-      <div class="lg:col-span-5 space-y-5">
-        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Resultado del Diagnóstico</span>
-            <span id="statusBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
-              Evaluando...
-            </span>
+      <div style="display:flex; flex-direction:column; gap:18px;">
+        <div class="card">
+          <div class="card-header" style="margin-bottom:8px;">
+            <span class="subtitle-xs" style="font-weight:700; text-transform:uppercase;">Dictamen Simultáneo (Regresión + Clasificación)</span>
+            <span id="classBadge" class="badge badge-ok">Evaluando...</span>
           </div>
 
-          <div class="flex items-baseline gap-3 my-2">
-            <span id="scoreValue" class="text-5xl font-bold tracking-tight text-slate-900">--</span>
-            <span class="text-sm text-slate-400 font-medium">/ 100 Índice de Severidad</span>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span id="scoreDisplay" class="score-big">--</span>
+            <span class="subtitle-xs">/ 100 Índice de Severidad (Regresión Lineal)</span>
           </div>
 
-          <p id="clusterText" class="text-xs font-medium text-slate-600 mt-1">
-            Categoría estimada: --
+          <p id="predClassText" style="font-size:13px; font-weight:700; color:#334155; margin-top:4px;">
+            Clase Predicha (OvR): --
           </p>
 
-          <!-- Barras Descriptivas -->
-          <div class="mt-6 space-y-4 pt-5 border-t border-slate-100">
-            <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="font-medium text-slate-700">Densidad de fisuras limpias (X₁)</span>
-                <span id="barCrackText" class="font-semibold text-slate-900">0%</span>
-              </div>
-              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div id="barCrack" class="h-full bg-blue-600 rounded-full transition-all duration-300" style="width: 0%"></div>
-              </div>
-            </div>
-
-            <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="font-medium text-slate-700">Área de cavidad / desprendimiento (X₂)</span>
-                <span id="barCavityText" class="font-semibold text-slate-900">0%</span>
-              </div>
-              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div id="barCavity" class="h-full bg-red-500 rounded-full transition-all duration-300" style="width: 0%"></div>
-              </div>
-            </div>
-
-            <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="font-medium text-slate-700">Rugosidad de la superficie (X₃)</span>
-                <span id="barRoughText" class="font-semibold text-slate-900">0%</span>
-              </div>
-              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div id="barRough" class="h-full bg-amber-500 rounded-full transition-all duration-300" style="width: 0%"></div>
-              </div>
-            </div>
+          <div class="bar-group">
+            <div class="bar-label"><span>X₁: Densidad de fisuras limpias</span><span id="valX1">0.00</span></div>
+            <div class="bar-bg"><div id="barX1" class="bar-fill" style="width:0%; background:#2563EB;"></div></div>
           </div>
 
-          <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span class="text-slate-500">Prioridad de mantenimiento (Logística):</span>
-            <span id="urgentProb" class="font-bold text-slate-800">--%</span>
+          <div class="bar-group">
+            <div class="bar-label"><span>X₂: Área de cavidad profunda</span><span id="valX2">0.00</span></div>
+            <div class="bar-bg"><div id="barX2" class="bar-fill" style="width:0%; background:#DC2626;"></div></div>
+          </div>
+
+          <div class="bar-group">
+            <div class="bar-label"><span>X₃: Rugosidad superficial (σ gris)</span><span id="valX3">0.00</span></div>
+            <div class="bar-bg"><div id="barX3" class="bar-fill" style="width:0%; background:#D97706;"></div></div>
+          </div>
+
+          <div class="bar-group">
+            <div class="bar-label"><span>X₄: Caída de contraste en fractura</span><span id="valX4">0.00</span></div>
+            <div class="bar-bg"><div id="barX4" class="bar-fill" style="width:0%; background:#7C3AED;"></div></div>
+          </div>
+
+          <div id="eqBox" class="formula-box">
+            ŷ = β₀ + β₁X₁ + β₂X₂ + β₃X₃ + β₄X₄
           </div>
         </div>
 
-        <!-- Panel Modo Inspector (Oculto por defecto) -->
-        <div id="inspectorPanel" class="hidden bg-slate-900 text-slate-100 rounded-2xl p-5 shadow-md space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-blue-400">Desglose Matemático (Python Backend)</span>
-            <span class="text-[11px] font-mono text-slate-400">NumPy + OpenCV</span>
+        <!-- Simulador Directo de Variables X (Criterio D3 explícito) -->
+        <div class="card">
+          <h2 class="title-sm">Predicción Directa por Variables de Entrada (X) — Criterio D3</h2>
+          <p class="subtitle-xs">Introduce valores numéricos [0.00 a 1.00] para obtener la predicción de Regresión y Clasificación:</p>
+          <div class="input-row">
+            <div class="field">
+              <label>X₁ Densidad de Fisuras (0–1)</label>
+              <input id="inX1" type="number" step="0.01" min="0" max="1" value="0.46" />
+            </div>
+            <div class="field">
+              <label>X₂ Área de Cavidad (0–1)</label>
+              <input id="inX2" type="number" step="0.01" min="0" max="1" value="0.19" />
+            </div>
+            <div class="field">
+              <label>X₃ Rugosidad Superficial (0–1)</label>
+              <input id="inX3" type="number" step="0.01" min="0" max="1" value="0.44" />
+            </div>
+            <div class="field">
+              <label>X₄ Caída de Contraste (0–1)</label>
+              <input id="inX4" type="number" step="0.01" min="0" max="1" value="0.42" />
+            </div>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            El servidor aplica filtro bilateral + umbral adaptativo + descarte morfológico de poros y evalúa la Regresión Lineal Múltiple:
-          </p>
-          <div id="mathFormula" class="bg-slate-800/90 border border-slate-700 rounded-xl p-3 font-mono text-xs text-emerald-300 overflow-x-auto">
-            ŷ = 4.2 + 52.0(X₁) + 31.5(X₂) + 12.3(X₃)
+          <button class="btn-primary" style="margin-top:12px; width:100%; justify-content:center;" onclick="runManualPrediction()">
+            Calcular Predicción con Modelo Entrenado
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA 2: ENTRENAMIENTO EN VIVO Y MÉTRICAS COMPLETAS (Criterios D2 y C3) -->
+    <section id="viewTrain" class="hidden" style="padding: 26px 0 50px;">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="title-sm">Entrenamiento y Validación del Modelo desde la Interfaz Web (Criterio D2)</h2>
+            <p class="subtitle-xs">Entrena en vivo la Regresión Lineal Múltiple (OLS) y la Clasificación Logística Multiclase (One-vs-Rest) sobre las 450 muestras viales sin fuga de información.</p>
+          </div>
+          <button id="btnTrainNow" class="btn-primary" onclick="triggerTraining()">
+            Entrenar y Evaluar Modelos Ahora
+          </button>
+        </div>
+
+        <div class="input-row" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
+          <div class="field">
+            <label>Proporción de Prueba (Test Split)</label>
+            <input id="cfgTestRatio" type="number" step="0.05" min="0.10" max="0.40" value="0.20" />
+          </div>
+          <div class="field">
+            <label>Tasa de Aprendizaje (Learning Rate)</label>
+            <input id="cfgLr" type="number" step="0.05" min="0.01" max="1.0" value="0.25" />
+          </div>
+          <div class="field">
+            <label>Épocas (Descenso del Gradiente OvR)</label>
+            <input id="cfgEpochs" type="number" step="100" min="200" max="5000" value="1200" />
+          </div>
+          <div class="field">
+            <label>Semilla Aleatoria (Reproducibilidad)</label>
+            <input id="cfgSeed" type="number" step="1" value="42" />
+          </div>
+        </div>
+
+        <h3 class="title-sm" style="margin-top:18px;">1. Métricas de Evaluación — Modelo de Regresión Lineal Múltiple (Criterio C3)</h3>
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <div class="kpi-lbl">R² (Coef. de Determinación)</div>
+            <div id="kpiR2" class="kpi-val">--</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-lbl">RMSE (Error Cuadrático Medio)</div>
+            <div id="kpiRMSE" class="kpi-val">--</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-lbl">MAE (Error Absoluto Medio)</div>
+            <div id="kpiMAE" class="kpi-val">--</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-lbl">Partición Train / Test</div>
+            <div id="kpiSplit" class="kpi-val" style="font-size:17px;">360 / 90</div>
+          </div>
+        </div>
+
+        <div id="trainedBetasBox" class="formula-box">
+          Pesos aprendidos: cargando...
+        </div>
+
+        <h3 class="title-sm" style="margin-top:24px;">2. Métricas de Evaluación — Clasificación Multiclase One-vs-Rest (Criterio C3)</h3>
+        <p class="subtitle-xs">Exactitud Global (Accuracy) en conjunto de prueba: <strong id="kpiAcc" style="color:#059669; font-size:14px;">--%</strong></p>
+
+        <div style="display:grid; grid-template-columns: 5fr 7fr; gap:20px; margin-top:12px;">
+          <div>
+            <h4 style="font-size:13px; font-weight:700;">Matriz de Confusión 3×3 (Filas: Real | Columnas: Predicho)</h4>
+            <table id="cmTable">
+              <thead>
+                <tr>
+                  <th>Real \ Predicho</th>
+                  <th>Clase 0 (Leve)</th>
+                  <th>Clase 1 (Mod.)</th>
+                  <th>Clase 2 (Crítico)</th>
+                </tr>
+              </thead>
+              <tbody id="cmBody"></tbody>
+            </table>
+          </div>
+
+          <div>
+            <h4 style="font-size:13px; font-weight:700;">Métricas Desglosadas por Clase (Uno contra el Resto — OvR)</h4>
+            <table>
+              <thead>
+                <tr>
+                  <th>Clase Evaluada</th>
+                  <th>Precision</th>
+                  <th>Recall (Sensibilidad)</th>
+                  <th>F1-Score</th>
+                  <th>Specificity (Especificidad)</th>
+                </tr>
+              </thead>
+              <tbody id="classMetricsBody"></tbody>
+            </table>
           </div>
         </div>
       </div>
+    </section>
 
-    </div>
   </main>
 
   <script>
-    let currentOrig = "";
-    let currentProc = "";
-    let showingProc = true;
-    let lastUploadedFile = null;
+    let origB64 = "";
+    let procB64 = "";
+    let showProc = true;
     let currentPreset = "lineal";
+    let uploadedFile = null;
 
-    const displayImage = document.getElementById("displayImage");
-    const loadingOverlay = document.getElementById("loadingOverlay");
-    const btnViewOrig = document.getElementById("btnViewOrig");
-    const btnViewProc = document.getElementById("btnViewProc");
-    const sensitivitySlider = document.getElementById("sensitivitySlider");
-    const sensVal = document.getElementById("sensVal");
+    function switchTab(tab) {
+      document.getElementById("viewInspect").classList.toggle("hidden", tab !== "inspect");
+      document.getElementById("viewTrain").classList.toggle("hidden", tab !== "train");
+      document.getElementById("tabBtnInspect").classList.toggle("active", tab === "inspect");
+      document.getElementById("tabBtnTrain").classList.toggle("active", tab === "train");
+    }
 
-    function updateViewButtons() {
-      if (showingProc) {
-        displayImage.src = currentProc;
-        btnViewProc.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition";
-        btnViewOrig.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+    function setImgView(proc) {
+      showProc = proc;
+      document.getElementById("displayImage").src = showProc ? procB64 : origB64;
+      document.getElementById("btnProc").classList.toggle("active", showProc);
+      document.getElementById("btnOrig").classList.toggle("active", !showProc);
+    }
+
+    function updatePredictionUI(data) {
+      if (data.original_image && data.processed_image) {
+        origB64 = data.original_image;
+        procB64 = data.processed_image;
+        setImgView(showProc);
+      }
+
+      const s = data.severity_score;
+      document.getElementById("scoreDisplay").textContent = s.toFixed(1);
+      document.getElementById("predClassText").textContent =
+        `${data.predicted_class_label} (Probabilidades OvR: C0=${data.class_probabilities[0]}%, C1=${data.class_probabilities[1]}%, C2=${data.class_probabilities[2]}%)`;
+
+      const badge = document.getElementById("classBadge");
+      if (data.predicted_class_id === 0) {
+        badge.textContent = "Clase 0: Condición Óptima";
+        badge.className = "badge badge-ok";
+      } else if (data.predicted_class_id === 1) {
+        badge.textContent = "Clase 1: Deterioro Moderado";
+        badge.className = "badge badge-warn";
       } else {
-        displayImage.src = currentOrig;
-        btnViewOrig.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition";
-        btnViewProc.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
-      }
-    }
-
-    btnViewOrig.addEventListener("click", () => { showingProc = false; updateViewButtons(); });
-    btnViewProc.addEventListener("click", () => { showingProc = true; updateViewButtons(); });
-
-    document.getElementById("toggleInspectorBtn").addEventListener("click", () => {
-      const panel = document.getElementById("inspectorPanel");
-      panel.classList.toggle("hidden");
-    });
-
-    function renderResponse(data) {
-      currentOrig = data.original_image;
-      currentProc = data.processed_image;
-      updateViewButtons();
-
-      const score = data.severity_score;
-      document.getElementById("scoreValue").textContent = score.toFixed(1);
-      document.getElementById("clusterText").textContent = "Diagnóstico por agrupación: " + data.cluster_label;
-      document.getElementById("urgentProb").textContent = data.urgent_probability + "% prob. intervención";
-
-      const badge = document.getElementById("statusBadge");
-      if (score < 28) {
-        badge.textContent = "Condición Óptima";
-        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200";
-      } else if (score < 60) {
-        badge.textContent = "Deterioro Moderado";
-        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200";
-      } else {
-        badge.textContent = "Intervención Prioritaria";
-        badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200";
+        badge.textContent = "Clase 2: Falla Crítica";
+        badge.className = "badge badge-crit";
       }
 
-      document.getElementById("barCrack").style.width = data.features.crack_density + "%";
-      document.getElementById("barCrackText").textContent = data.features.crack_density + "%";
+      const f = data.features;
+      document.getElementById("valX1").textContent = f.x1_crack_density.toFixed(2);
+      document.getElementById("barX1").style.width = (f.x1_crack_density * 100) + "%";
+      document.getElementById("valX2").textContent = f.x2_cavity_area.toFixed(2);
+      document.getElementById("barX2").style.width = (f.x2_cavity_area * 100) + "%";
+      document.getElementById("valX3").textContent = f.x3_roughness.toFixed(2);
+      document.getElementById("barX3").style.width = (f.x3_roughness * 100) + "%";
+      document.getElementById("valX4").textContent = f.x4_contrast_drop.toFixed(2);
+      document.getElementById("barX4").style.width = (f.x4_contrast_drop * 100) + "%";
 
-      document.getElementById("barCavity").style.width = data.features.cavity_area + "%";
-      document.getElementById("barCavityText").textContent = data.features.cavity_area + "%";
+      document.getElementById("inX1").value = f.x1_crack_density.toFixed(2);
+      document.getElementById("inX2").value = f.x2_cavity_area.toFixed(2);
+      document.getElementById("inX3").value = f.x3_roughness.toFixed(2);
+      document.getElementById("inX4").value = f.x4_contrast_drop.toFixed(2);
 
-      document.getElementById("barRough").style.width = data.features.roughness + "%";
-      document.getElementById("barRoughText").textContent = data.features.roughness + "%";
-
-      const eq = data.equation;
-      document.getElementById("mathFormula").textContent =
-        `ŷ = ${eq.b0} + ${eq.b1}(${eq.x1}) + ${eq.b2}(${eq.x2}) + ${eq.b3}(${eq.x3}) = ${score}`;
+      const b = data.betas;
+      document.getElementById("eqBox").textContent =
+        `ŷ = ${b[0]} + ${b[1]}(${f.x1_crack_density.toFixed(2)}) + ${b[2]}(${f.x2_cavity_area.toFixed(2)}) + ${b[3]}(${f.x3_roughness.toFixed(2)}) + ${b[4]}(${f.x4_contrast_drop.toFixed(2)}) = ${s.toFixed(2)}`;
     }
 
-    async function loadPreset(presetId) {
-      lastUploadedFile = null;
-      currentPreset = presetId;
-      loadingOverlay.classList.remove("hidden");
-      try {
-        const sens = sensitivitySlider.value;
-        const res = await fetch(`/api/preset/${presetId}?sensitivity=${sens}`);
-        const data = await res.json();
-        renderResponse(data);
-      } finally {
-        loadingOverlay.classList.add("hidden");
-      }
+    async function loadPreset(preset) {
+      uploadedFile = null;
+      currentPreset = preset;
+      const sens = document.getElementById("sensSlider").value;
+      const res = await fetch(`/api/preset/${preset}?sensitivity=${sens}`);
+      const data = await res.json();
+      updatePredictionUI(data);
     }
 
-    async function uploadFile(file) {
-      loadingOverlay.classList.remove("hidden");
-      try {
+    async function runManualPrediction() {
+      const payload = {
+        x1_crack_density: parseFloat(document.getElementById("inX1").value) || 0,
+        x2_cavity_area: parseFloat(document.getElementById("inX2").value) || 0,
+        x3_roughness: parseFloat(document.getElementById("inX3").value) || 0,
+        x4_contrast_drop: parseFloat(document.getElementById("inX4").value) || 0
+      };
+      const res = await fetch("/api/predict-manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      updatePredictionUI(data);
+    }
+
+    function renderMetricsUI(m) {
+      document.getElementById("kpiR2").textContent = m.regression.r2.toFixed(4);
+      document.getElementById("kpiRMSE").textContent = m.regression.rmse.toFixed(4);
+      document.getElementById("kpiMAE").textContent = m.regression.mae.toFixed(4);
+      document.getElementById("kpiSplit").textContent = `${m.n_train} / ${m.n_test}`;
+      document.getElementById("kpiAcc").textContent = m.classification.accuracy.toFixed(2) + "%";
+
+      const b = m.regression.betas;
+      document.getElementById("trainedBetasBox").textContent =
+        `Ecuación OLS Entrenada: ŷ = ${b[0]} + ${b[1]}·X₁ + ${b[2]}·X₂ + ${b[3]}·X₃ + ${b[4]}·X₄`;
+
+      const cm = m.classification.confusion_matrix;
+      const labels = ["Clase 0 (Leve)", "Clase 1 (Mod.)", "Clase 2 (Crítico)"];
+      document.getElementById("cmBody").innerHTML = cm.map((row, idx) => `
+        <tr>
+          <th>${labels[idx]}</th>
+          <td style="font-weight:${idx===0?'700':'400'}; background:${idx===0?'#ECFDF5':'transparent'}">${row[0]}</td>
+          <td style="font-weight:${idx===1?'700':'400'}; background:${idx===1?'#ECFDF5':'transparent'}">${row[1]}</td>
+          <td style="font-weight:${idx===2?'700':'400'}; background:${idx===2?'#ECFDF5':'transparent'}">${row[2]}</td>
+        </tr>
+      `).join("");
+
+      document.getElementById("classMetricsBody").innerHTML = m.classification.per_class.map(c => `
+        <tr>
+          <td style="text-align:left; font-weight:600;">${c.class_name}</td>
+          <td>${c.precision.toFixed(2)}%</td>
+          <td>${c.recall.toFixed(2)}%</td>
+          <td><strong>${c.f1.toFixed(2)}%</strong></td>
+          <td>${c.specificity.toFixed(2)}%</td>
+        </tr>
+      `).join("");
+    }
+
+    async function triggerTraining() {
+      const btn = document.getElementById("btnTrainNow");
+      btn.textContent = "Entrenando modelos...";
+      const payload = {
+        test_ratio: parseFloat(document.getElementById("cfgTestRatio").value) || 0.20,
+        lr: parseFloat(document.getElementById("cfgLr").value) || 0.25,
+        epochs: parseInt(document.getElementById("cfgEpochs").value) || 1200,
+        seed: parseInt(document.getElementById("cfgSeed").value) || 42
+      };
+      const res = await fetch("/api/train", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const m = await res.json();
+      renderMetricsUI(m);
+      btn.textContent = "Entrenar y Evaluar Modelos Ahora";
+    }
+
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      if (e.target.files && e.target.files[0]) {
+        uploadedFile = e.target.files[0];
         const formData = new FormData();
-        formData.append("file", file);
-        formData.append("sensitivity", sensitivitySlider.value);
+        formData.append("file", uploadedFile);
+        formData.append("sensitivity", document.getElementById("sensSlider").value);
         const res = await fetch("/api/analyze", { method: "POST", body: formData });
         const data = await res.json();
-        renderResponse(data);
-      } finally {
-        loadingOverlay.classList.add("hidden");
-      }
-    }
-
-    document.getElementById("fileInput").addEventListener("change", (e) => {
-      if (e.target.files && e.target.files[0]) {
-        lastUploadedFile = e.target.files[0];
-        uploadFile(lastUploadedFile);
+        updatePredictionUI(data);
       }
     });
 
-    sensitivitySlider.addEventListener("change", () => {
-      sensVal.textContent = sensitivitySlider.value + " px";
-      if (lastUploadedFile) {
-        uploadFile(lastUploadedFile);
+    document.getElementById("sensSlider").addEventListener("change", async (e) => {
+      document.getElementById("sensLabel").textContent = e.target.value + " px";
+      if (uploadedFile) {
+        const formData = new FormData();
+        formData.append("file", uploadedFile);
+        formData.append("sensitivity", e.target.value);
+        const res = await fetch("/api/analyze", { method: "POST", body: formData });
+        updatePredictionUI(await res.json());
       } else {
         loadPreset(currentPreset);
       }
     });
 
-    sensitivitySlider.addEventListener("input", () => {
-      sensVal.textContent = sensitivitySlider.value + " px";
-    });
-
-    loadPreset("lineal");
+    (async function init() {
+      await loadPreset("lineal");
+      const res = await fetch("/api/metrics");
+      renderMetricsUI(await res.json());
+    })();
   </script>
 </body>
 </html>
